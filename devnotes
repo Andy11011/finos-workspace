@@ -1,0 +1,75 @@
+
+//--------------------
+
+The widget code I need is frontend/src/components/Widgets/Iframe.tsx, 
+which renders HTML widgets, and the sandbox constants in frontend/src/lib/constants.ts.
+
+//--------------------
+
+frontend/src/components/Widgets/Iframe.tsx, the whole file. It’s the component for your widgets and renders the <iframe> at line 633.
+
+  frontend/src/lib/constants.ts, lines 525–545 only. These define IFRAME_SRCDOC_SANDBOX_ATTRIBUTES and IFRAME_SANDBOX_ATTRIBUTES.
+
+  The output of this search for the header buttons, since maximize found nothing for them:
+
+//--------------------
+
+Iframe.tsx is Workspace’s generic URL iframe widget (src={iframeSrc}). 
+Your EdgeDesk widgets are type html, so they almost certainly go through
+ HtmlViewer.tsx (srcDoc, line 265), not this file. I read the sandbox 
+ constants in constants.ts, but I don’t have HtmlViewer.tsx yet.
+
+frontend/src/components/Widgets/custom/HtmlViewer.tsx in full.
+The file that renders the widget header buttons. Search by the setting name we now know exists:
+
+git grep -n -E "showMinimizeButton|showMinimizeWidget|minimizeWidget" -- "frontend/src/*" ":!frontend/src/lib/state/*" ":!frontend/src/lib/runtimeConfigSchema.ts" | Select-Object -First 30
+
+//--------------------
+
+HtmlViewer.tsx confirms what I suspected. I’ve patched it, and the ⛶ button should now go fullscreen inside the widget. I haven’t built or run it.
+
+What was blocking the button
+
+1. The <iframe> had no allow="fullscreen", so requestFullscreen() was always rejected.
+
+2. The sandbox had allow-popups but not allow-popups-to-escape-sandbox. The new-tab fallback would have opened a tab that was itself sandboxed.
+
+
+1. It adds allow="fullscreen" and allowFullScreen to the iframe.
+2. It adds a local HTML_WIDGET_SANDBOX_ATTRIBUTES, which is the 
+shared constant plus allow-popups-to-escape-sandbox. I left constants.ts 
+alone so the other iframe widgets and plugin frames keep their sandbox.
+
+
+2. Keep your changes on their own branch
+
+
+PS D:\Projects\finos-workspace> git remote -v
+origin  https://github.com/Andy11011/finos-workspace.git (fetch)
+origin  https://github.com/Andy11011/finos-workspace.git (push)
+PS D:\Projects\finos-workspace>
+PS D:\Projects\finos-workspace>
+PS D:\Projects\finos-workspace>
+PS D:\Projects\finos-workspace>
+PS D:\Projects\finos-workspace> git branch
+* main
+
+
+git checkout -b custom/edge-workspace
+# copy the patched HtmlViewer.tsx into frontend/src/components/Widgets/custom/
+git add frontend/src/components/Widgets/custom/HtmlViewer.tsx
+git commit -m "HtmlViewer: allow fullscreen and popups escaping sandbox for HTML widgets"
+git push -u origin custom/edge-workspace
+
+3. Taking upstream updates
+
+git fetch upstream
+git checkout main
+git merge --ff-only upstream/main      # or: git reset --hard upstream/main
+git push origin main
+git checkout custom/edgedesk
+git rebase main
+git push --force-with-lease
+
+
+//--------------------

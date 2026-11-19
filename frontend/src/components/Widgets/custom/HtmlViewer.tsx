@@ -23,6 +23,9 @@ import {
   type WorkspaceWidgetParamValue,
 } from "~/types/iframeProtocol";
 
+// popups must escape the sandbox, otherwise a chart opened in a new tab (fullscreen fallback) stays sandboxed
+const HTML_WIDGET_SANDBOX_ATTRIBUTES = `${IFRAME_SRCDOC_SANDBOX_ATTRIBUTES} allow-popups-to-escape-sandbox`;
+
 const BRIDGE_TOKEN_FIELD = "widgetParamBridgeToken";
 const PluginRowsCard = lazy(() =>
   import("~/plugins/PluginWidget").then((module) => ({
@@ -266,7 +269,9 @@ export default function HtmlViewer() {
             ref={iframeRef}
             srcDoc={iframeData}
             className="w-full h-full border-0"
-            sandbox={allowJsExecution ? IFRAME_SRCDOC_SANDBOX_ATTRIBUTES : ""}
+            sandbox={allowJsExecution ? HTML_WIDGET_SANDBOX_ATTRIBUTES : ""}
+            allow="fullscreen"
+            allowFullScreen
             title={widget.name}
           />
         )
